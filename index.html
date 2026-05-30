@@ -8,9 +8,13 @@
 <meta name="description" content="测一下你到 Gentoo 中文社区镜像站（海外）的实际下载 / 上传速度与延迟。">
 <link rel="icon" href="logo.webp">
 <script>
-/* 首屏前先定主题，避免闪烁。light/dark 写属性，system 不写（交给系统媒体查询）。 */
+/* 首屏前先定主题与语言，避免闪烁。light/dark 写属性，system 不写；语言无存储时按浏览器猜简/繁。 */
 (function () {
-  try { var t = localStorage.getItem('speed-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  try {
+    var t = localStorage.getItem('speed-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    var l = localStorage.getItem('speed-lang'); if (!l) l = /(^|-)(tw|hk|mo|hant)/i.test(navigator.language || '') ? 'zh-tw' : 'zh-cn';
+    document.documentElement.lang = l;
+  } catch (e) {}
 })();
 </script>
 <style>
@@ -39,13 +43,17 @@ body { margin: 0; background: var(--bg); color: var(--fg-body); line-height: 1.7
 .nav { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid var(--border);
        background: color-mix(in srgb, var(--bg) 82%, transparent);
        -webkit-backdrop-filter: blur(12px) saturate(180%); backdrop-filter: blur(12px) saturate(180%); }
-.nav-inner { max-width: 640px; margin: 0 auto; padding: 0.55rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+.nav-inner { max-width: 640px; margin: 0 auto; padding: 0.55rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .nav-brand { display: inline-flex; align-items: center; gap: 0.55rem; text-decoration: none; color: var(--fg); min-width: 0; }
 .nav-brand img { width: 28px; height: auto; flex: none; }
 .nav-title { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nav-controls { display: inline-flex; align-items: center; gap: 0.3rem; flex: none; }
+.nav-controls { display: inline-flex; align-items: center; gap: 0.2rem; flex: none; }
 .nav-link { color: var(--fg-soft); text-decoration: none; font-size: 0.86rem; font-weight: 600; padding: 0.32rem 0.5rem; border-radius: 0.4rem; white-space: nowrap; }
 .nav-link:hover { background: var(--hover); color: var(--fg); }
+.lang { display: inline-flex; align-items: center; }
+.lang-btn { border: none; background: transparent; color: var(--fg-soft); font: inherit; font-size: 0.88rem; font-weight: 600; padding: 0.32rem 0.44rem; border-radius: 0.4rem; cursor: pointer; line-height: 1; }
+.lang-btn:hover { background: var(--hover); color: var(--fg); }
+.lang-btn.active { color: var(--primary); }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: none; border-radius: 0.5rem; background: transparent; color: var(--fg-soft); cursor: pointer; }
 .icon-btn:hover { background: var(--hover); color: var(--fg); }
 .menu-wrap { position: relative; }
@@ -89,38 +97,58 @@ body { margin: 0; background: var(--bg); color: var(--fg-body); line-height: 1.7
   <div class="nav-inner">
     <a class="nav-brand" href="/">
       <img src="logo.webp" alt="">
-      <span class="nav-title">Gentoo 中文社区 · 测速</span>
+      <span class="nav-title" data-i18n="brand">Gentoo 中文社区 · 测速</span>
     </a>
     <nav class="nav-controls" aria-label="站点设置">
-      <a class="nav-link" href="https://mirror.gentoozh.org/">下载镜像</a>
+      <a class="nav-link" href="https://mirror.gentoozh.org/" data-i18n="navMirror">下载镜像</a>
+      <span class="lang" id="lang"></span>
       <span class="menu-wrap" id="theme-wrap"></span>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <p class="lead">测测你到本镜像站（海外）的实际速度。</p>
+  <p class="lead" data-i18n="lead">测测你到本镜像站（海外）的实际速度。</p>
   <button class="start" id="start" type="button">开始测速</button>
 
   <div class="grid">
-    <div class="metric" id="m-ping"><div class="m-label">延迟</div><div class="m-val"><span class="m-num" id="ping">—</span><span class="m-unit">ms</span></div></div>
-    <div class="metric" id="m-jit"><div class="m-label">抖动</div><div class="m-val"><span class="m-num" id="jit">—</span><span class="m-unit">ms</span></div></div>
-    <div class="metric" id="m-dl"><div class="m-label">下载</div><div class="m-val"><span class="m-num" id="dl">—</span><span class="m-unit">Mbps</span></div><div class="bar"><i id="dlbar"></i></div></div>
-    <div class="metric" id="m-ul"><div class="m-label">上传</div><div class="m-val"><span class="m-num" id="ul">—</span><span class="m-unit">Mbps</span></div><div class="bar"><i id="ulbar"></i></div></div>
+    <div class="metric" id="m-ping"><div class="m-label" data-i18n="ping">延迟</div><div class="m-val"><span class="m-num" id="ping">—</span><span class="m-unit">ms</span></div></div>
+    <div class="metric" id="m-jit"><div class="m-label" data-i18n="jitter">抖动</div><div class="m-val"><span class="m-num" id="jit">—</span><span class="m-unit">ms</span></div></div>
+    <div class="metric" id="m-dl"><div class="m-label" data-i18n="download">下载</div><div class="m-val"><span class="m-num" id="dl">—</span><span class="m-unit">Mbps</span></div><div class="bar"><i id="dlbar"></i></div></div>
+    <div class="metric" id="m-ul"><div class="m-label" data-i18n="upload">上传</div><div class="m-val"><span class="m-num" id="ul">—</span><span class="m-unit">Mbps</span></div><div class="bar"><i id="ulbar"></i></div></div>
   </div>
 
   <div class="ipline" id="ipline"></div>
 </main>
 
 <footer class="foot">
-  本测速基于 <a href="https://github.com/Zakkaus/speedtest">LibreSpeed</a>（开源）· <a href="https://mirror.gentoozh.org/">下载镜像</a>
+  <span data-i18n-html="footer">本测速基于 <a href="https://github.com/Zakkaus/speedtest">LibreSpeed</a>（开源）· <a href="https://mirror.gentoozh.org/">下载镜像</a></span>
 </footer>
 
 <script src="speedtest.js"></script>
 <script>
 (function () {
-  /* —— 主题下拉（与镜像站同款：浅色 / 深色 / 跟随系统）—— */
-  var THEME_LABEL = { light: '浅色', dark: '深色', system: '跟随系统' };
+  var I18N = {
+    'zh-cn': {
+      brand: 'Gentoo 中文社区 · 测速', navMirror: '下载镜像',
+      lead: '测测你到本镜像站（海外）的实际速度。',
+      start: '开始测速', testing: '测试中…', again: '再测一次',
+      ping: '延迟', jitter: '抖动', download: '下载', upload: '上传',
+      ipLabel: '你的 IP',
+      footer: '本测速基于 <a href="https://github.com/Zakkaus/speedtest">LibreSpeed</a>（开源）· <a href="https://mirror.gentoozh.org/">下载镜像</a>',
+      theme: { word: '主题', light: '浅色', dark: '深色', system: '跟随系统' }
+    },
+    'zh-tw': {
+      brand: 'Gentoo 中文社群 · 測速', navMirror: '下載鏡像',
+      lead: '測測你到本鏡像站（海外）的實際速度。',
+      start: '開始測速', testing: '測試中…', again: '再測一次',
+      ping: '延遲', jitter: '抖動', download: '下載', upload: '上傳',
+      ipLabel: '你的 IP',
+      footer: '本測速基於 <a href="https://github.com/Zakkaus/speedtest">LibreSpeed</a>（開源）· <a href="https://mirror.gentoozh.org/">下載鏡像</a>',
+      theme: { word: '主題', light: '淺色', dark: '深色', system: '跟隨系統' }
+    }
+  };
+  var LANG_NAME = { 'zh-cn': '简体中文', 'zh-tw': '繁體中文' };
   var ICONS = {
     light: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>',
     dark: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>',
@@ -128,75 +156,104 @@ body { margin: 0; background: var(--bg); color: var(--fg-body); line-height: 1.7
   };
   function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+
+  var curLang = read('speed-lang') || (/(^|-)(tw|hk|mo|hant)/i.test(navigator.language || '') ? 'zh-tw' : 'zh-cn');
   var themeMode = read('speed-theme') || 'system';
+
+  /* —— 语言切换（简 / 繁）—— */
+  var langWrap = document.getElementById('lang');
+  var langBtns = {};
+  [['zh-cn', '简'], ['zh-tw', '繁']].forEach(function (p) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'lang-btn'; b.textContent = p[1]; b.dataset.lang = p[0]; b.title = LANG_NAME[p[0]];
+    b.addEventListener('click', function () { applyLang(p[0]); });
+    langWrap.appendChild(b); langBtns[p[0]] = b;
+  });
+
+  /* —— 主题下拉（浅色 / 深色 / 跟随系统）—— */
   var wrap = document.getElementById('theme-wrap');
-  var btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'icon-btn'; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false');
+  var themeBtn = document.createElement('button');
+  themeBtn.type = 'button'; themeBtn.className = 'icon-btn'; themeBtn.setAttribute('aria-haspopup', 'true'); themeBtn.setAttribute('aria-expanded', 'false');
   var menu = document.createElement('div'); menu.className = 'menu'; menu.setAttribute('role', 'menu'); menu.hidden = true;
   var items = {};
   ['light', 'dark', 'system'].forEach(function (m) {
     var it = document.createElement('button');
     it.type = 'button'; it.className = 'menu-item'; it.setAttribute('role', 'menuitemradio');
-    it.innerHTML = ICONS[m] + '<span>' + THEME_LABEL[m] + '</span>';
-    it.addEventListener('click', function () { applyTheme(m); closeMenu(); btn.focus(); });
+    it.innerHTML = ICONS[m] + '<span></span>';
+    it.addEventListener('click', function () { applyTheme(m); closeMenu(); themeBtn.focus(); });
     menu.appendChild(it); items[m] = it;
   });
-  btn.addEventListener('click', function (e) { e.stopPropagation(); if (menu.hidden) { menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); } else closeMenu(); });
-  function closeMenu() { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+  themeBtn.addEventListener('click', function (e) { e.stopPropagation(); if (menu.hidden) { menu.hidden = false; themeBtn.setAttribute('aria-expanded', 'true'); } else closeMenu(); });
+  function closeMenu() { menu.hidden = true; themeBtn.setAttribute('aria-expanded', 'false'); }
   document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) closeMenu(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
-  wrap.appendChild(btn); wrap.appendChild(menu);
+  wrap.appendChild(themeBtn); wrap.appendChild(menu);
+
+  function renderTheme() {
+    var th = I18N[curLang].theme;
+    themeBtn.innerHTML = ICONS[themeMode];
+    themeBtn.title = th.word + '：' + th[themeMode]; themeBtn.setAttribute('aria-label', themeBtn.title);
+    ['light', 'dark', 'system'].forEach(function (m) { items[m].lastChild.textContent = th[m]; items[m].classList.toggle('active', m === themeMode); });
+  }
   function applyTheme(mode) {
     themeMode = mode;
     if (mode === 'light' || mode === 'dark') document.documentElement.setAttribute('data-theme', mode);
     else document.documentElement.removeAttribute('data-theme');
-    store('speed-theme', mode);
-    btn.innerHTML = ICONS[mode]; btn.title = '主题：' + THEME_LABEL[mode];
-    ['light', 'dark', 'system'].forEach(function (m) { items[m].classList.toggle('active', m === mode); });
+    store('speed-theme', mode); renderTheme();
   }
+
+  /* —— 测速状态文案 / IP（随语言变）—— */
+  var startBtn = document.getElementById('start');
+  var startState = 'start', lastIp = '';
+  var elIp = document.getElementById('ipline');
+  function renderStart() { startBtn.textContent = I18N[curLang][startState]; }
+  function renderIp() { elIp.innerHTML = lastIp ? (I18N[curLang].ipLabel + '：<code>' + lastIp + '</code>') : ''; }
+
+  function applyLang(l) {
+    curLang = l; document.documentElement.lang = l;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = I18N[l][el.dataset.i18n]; });
+    document.querySelectorAll('[data-i18n-html]').forEach(function (el) { el.innerHTML = I18N[l][el.dataset.i18nHtml]; });
+    Object.keys(langBtns).forEach(function (k) { langBtns[k].classList.toggle('active', k === l); });
+    renderStart(); renderIp(); renderTheme();
+    store('speed-lang', l);
+  }
+
   applyTheme(themeMode);
+  applyLang(curLang);
 
   /* —— 测速（LibreSpeed 引擎，每次新建实例）—— */
-  var startBtn = document.getElementById('start');
   var elPing = document.getElementById('ping'), elJit = document.getElementById('jit'),
       elDl = document.getElementById('dl'), elUl = document.getElementById('ul'),
-      elDlBar = document.getElementById('dlbar'), elUlBar = document.getElementById('ulbar'),
-      elIp = document.getElementById('ipline');
+      elDlBar = document.getElementById('dlbar'), elUlBar = document.getElementById('ulbar');
   var mDl = document.getElementById('m-dl'), mUl = document.getElementById('m-ul'),
       mPing = document.getElementById('m-ping'), mJit = document.getElementById('m-jit');
   var running = false;
-
-  function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
-  function fmt(v) { var n = num(v); return n > 0 ? n.toFixed(2) : '—'; }
+  function n(v) { var x = Number(v); return isFinite(x) ? x : 0; }
+  function fmt(v) { var x = n(v); return x > 0 ? x.toFixed(2) : '—'; }
   function reset() {
     elPing.textContent = elJit.textContent = elDl.textContent = elUl.textContent = '—';
     elDlBar.style.width = elUlBar.style.width = '0';
     [mDl, mUl, mPing, mJit].forEach(function (m) { m.classList.remove('live'); });
-    elIp.textContent = '';
+    lastIp = ''; renderIp();
   }
-
   function run() {
     var s = new Speedtest();
     s.setParameter('telemetry_level', 'none');
     s.onupdate = function (d) {
-      if (num(d.pingStatus) > 0) elPing.textContent = num(d.pingStatus).toFixed(1);
-      if (num(d.jitterStatus) > 0) elJit.textContent = num(d.jitterStatus).toFixed(1);
+      if (n(d.pingStatus) > 0) elPing.textContent = n(d.pingStatus).toFixed(1);
+      if (n(d.jitterStatus) > 0) elJit.textContent = n(d.jitterStatus).toFixed(1);
       elDl.textContent = fmt(d.dlStatus);
       elUl.textContent = fmt(d.ulStatus);
-      var dp = num(d.dlProgress), up = num(d.ulProgress);
-      elDlBar.style.width = Math.min(dp, 1) * 100 + '%';
-      elUlBar.style.width = Math.min(up, 1) * 100 + '%';
-      // 高亮当前进行的阶段
+      elDlBar.style.width = Math.min(n(d.dlProgress), 1) * 100 + '%';
+      elUlBar.style.width = Math.min(n(d.ulProgress), 1) * 100 + '%';
       mPing.classList.toggle('live', d.testState === 2);
       mJit.classList.toggle('live', d.testState === 2);
       mDl.classList.toggle('live', d.testState === 1);
       mUl.classList.toggle('live', d.testState === 3);
-      if (d.clientIp) elIp.innerHTML = '你的 IP：<code>' + String(d.clientIp).trim().split(' ')[0] + '</code>';
+      if (d.clientIp) { lastIp = String(d.clientIp).trim().split(' ')[0]; renderIp(); }
     };
     s.onend = function () {
-      running = false;
-      startBtn.disabled = false;
-      startBtn.textContent = '再测一次';
+      running = false; startBtn.disabled = false; startState = 'again'; renderStart();
       [mDl, mUl, mPing, mJit].forEach(function (m) { m.classList.remove('live'); });
       elDlBar.style.width = elUlBar.style.width = '100%';
     };
@@ -204,7 +261,7 @@ body { margin: 0; background: var(--bg); color: var(--fg-body); line-height: 1.7
   }
   startBtn.addEventListener('click', function () {
     if (running) return;
-    running = true; startBtn.disabled = true; startBtn.textContent = '测试中…';
+    running = true; startBtn.disabled = true; startState = 'testing'; renderStart();
     reset(); run();
   });
 })();
